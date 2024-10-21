@@ -1,0 +1,97 @@
+import sqlite3
+
+# Connect to SQLite database (or create if not exists)
+conn = sqlite3.connect('library.db')
+cursor = conn.cursor()
+
+# Create a table to store books
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS books (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        author TEXT,
+        genre TEXT,
+        quantity INTEGER DEFAULT 1,
+        is_available BOOLEAN DEFAULT 1
+    )
+''')
+conn.commit()
+
+def add_book():
+    title = input("Enter the book title: ")
+    author = input("Enter the author's name: ")
+    genre = input("Enter the genre: ")
+    quantity = int(input("Enter the quantity: "))
+
+    cursor.execute("INSERT INTO books (title, author, genre, quantity) VALUES (?, ?, ?, ?)", (title, author, genre, quantity))
+    conn.commit()
+    print("Book added successfully!\n")
+
+def display_books():
+    cursor.execute("SELECT * FROM books")
+    books = cursor.fetchall()
+
+    if not books:
+        print("No books found.")
+    else:
+        for book in books:
+            availability = "Available" if book[5] else "Borrowed"
+            print(f"ID: {book[0]}, Title: {book[1]}, Author: {book[2]}, Genre: {book[3]}, Quantity: {book[4]}, Status: {availability}")
+        print()
+
+def borrow_book():
+    title = input("Enter the title of the book you want to borrow: ")
+
+    cursor.execute("SELECT * FROM books WHERE title=? AND is_available=1 AND quantity > 0", (title,))
+    book = cursor.fetchone()
+
+    if book:
+        cursor.execute("UPDATE books SET is_available=0, quantity=quantity-1 WHERE id=?", (book[0],))
+        conn.commit()
+        print("Book borrowed successfully!\n")
+    else:
+        print("Sorry, the book is currently unavailable or not found.\n")
+
+def return_book():
+    title = input("Enter the title of the book you want to return: ")
+
+    cursor.execute("SELECT * FROM books WHERE title=? AND is_available=0", (title,))
+    book = cursor.fetchone()
+
+    if book:
+        cursor.execute("UPDATE books SET is_available=1, quantity=quantity+1 WHERE id=?", (book[0],))
+        conn.commit()
+        print("Book returned successfully!\n")
+    else:
+        print("Error: This book is not borrowed or not found.\n")
+
+def main():
+    while True:
+        print("Library Management System")
+        print("1. Add Book")
+        print("2. Display Books")
+        print("3. Borrow Book")
+        print("4. Return Book")
+        print("5. Exit")        
+
+        choice = input("Enter your choice (1/2/3/4/5): ")
+
+        if choice == '1':
+            add_book()
+        elif choice == '2':
+            display_books()
+        elif choice == '3':
+            borrow_book()
+        elif choice == '4':
+            return_book()
+        elif choice == '5':
+            print("Exiting the program. Goodbye!")
+            break
+        else:
+            print("Invalid choice. Please try again.\n")
+
+if __name__ == "__main__":
+    main()
+
+# Close the connection when done
+conn.close()
